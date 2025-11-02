@@ -125,6 +125,46 @@ if [ "$EUID" -eq 0 ] && [ ! -f /.dockerenv ]; then
 fi
 
 #==============================================================================
+# Bootstrap: Install Essential Tools (if missing)
+#==============================================================================
+show_step "Bootstrap: Installing Essential Tools"
+
+echo "Checking for essential tools..."
+echo ""
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+MISSING_TOOLS=()
+
+# Check for required tools
+if ! command_exists wget; then MISSING_TOOLS+=("wget"); fi
+if ! command_exists curl; then MISSING_TOOLS+=("curl"); fi
+if ! command_exists git; then MISSING_TOOLS+=("git"); fi
+if ! command_exists sudo; then MISSING_TOOLS+=("sudo"); fi
+
+if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+    echo -e "${YELLOW}⚠ Missing tools detected: ${MISSING_TOOLS[*]}${NC}"
+    echo ""
+    echo "Installing essential tools first..."
+    echo ""
+    
+    apt update
+    apt install -y "${MISSING_TOOLS[@]}"
+    
+    echo ""
+    echo -e "${GREEN}✓ Essential tools installed!${NC}"
+    echo ""
+else
+    echo -e "${GREEN}✓ All essential tools present!${NC}"
+    echo ""
+fi
+
+wait_for_confirmation
+
+#==============================================================================
 # PART 1: INSTALL ROS 2 HUMBLE
 #==============================================================================
 
