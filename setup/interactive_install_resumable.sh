@@ -16,7 +16,36 @@ NC='\033[0m' # No Color
 # Configuration
 GITHUB_REPO="https://github.com/RuthraBellan/freenove-ros2-session5.git"
 
-# Checkpoint systemPROGRESS_FILE="$HOME/.ros2_session5_progress"CHECKPOINT_DIR="$HOME/.ros2_session5_checkpoints"# Create checkpoint directorymkdir -p "$CHECKPOINT_DIR"# Checkpoint functionssave_checkpoint() {    local step_name="$1"    echo "$step_name" > "$PROGRESS_FILE"    touch "$CHECKPOINT_DIR/$step_name"}is_checkpoint_complete() {    local step_name="$1"    [ -f "$CHECKPOINT_DIR/$step_name" ]}get_last_checkpoint() {    if [ -f "$PROGRESS_FILE" ]; then        cat "$PROGRESS_FILE"    else        echo ""    fi}command_exists() {    command -v "$1" >/dev/null 2>&1}
+# Checkpoint system
+PROGRESS_FILE="$HOME/.ros2_session5_progress"
+CHECKPOINT_DIR="$HOME/.ros2_session5_checkpoints"
+
+# Create checkpoint directory
+mkdir -p "$CHECKPOINT_DIR"
+
+# Checkpoint functions
+save_checkpoint() {
+    local step_name="$1"
+    echo "$step_name" > "$PROGRESS_FILE"
+    touch "$CHECKPOINT_DIR/$step_name"
+}
+
+is_checkpoint_complete() {
+    local step_name="$1"
+    [ -f "$CHECKPOINT_DIR/$step_name" ]
+}
+
+get_last_checkpoint() {
+    if [ -f "$PROGRESS_FILE" ]; then
+        cat "$PROGRESS_FILE"
+    else
+        echo ""
+    fi
+}
+
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 FREENOVE_REPO="https://github.com/Freenove/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi"
 
 # Functions
@@ -28,7 +57,40 @@ wait_for_user() {
 
 wait_for_confirmation() {
 
-# Check for previous progressLAST_CHECKPOINT=$(get_last_checkpoint)if [ -n "$LAST_CHECKPOINT" ]; then    echo -e "${YELLOW}═══════════════════════════════════════${NC}"    echo -e "${YELLOW}   📌 PREVIOUS SESSION DETECTED!${NC}"    echo -e "${YELLOW}═══════════════════════════════════════${NC}"    echo ""    echo "Last completed: $LAST_CHECKPOINT"    echo ""    if ask_yes_no "Do you want to RESUME from where you left off?"; then        RESUME_MODE=true        echo ""        echo -e "${GREEN}✓ Resuming session...${NC}"        echo "Skipping completed steps."        echo ""        sleep 2    else        RESUME_MODE=false        echo ""        if ask_yes_no "Start fresh? This will reset all progress."; then            rm -rf "$CHECKPOINT_DIR"            rm -f "$PROGRESS_FILE"            mkdir -p "$CHECKPOINT_DIR"            echo -e "${YELLOW}Progress reset. Starting from beginning.${NC}"            echo ""            sleep 2        else            echo "Exiting. Run script again to resume."            exit 0        fi    fielse    RESUME_MODE=falsefi
+# Check for previous progress
+    LAST_CHECKPOINT=$(get_last_checkpoint)
+    if [ -n "$LAST_CHECKPOINT" ]; then
+        echo -e "${YELLOW}══════════════════════════════════════${NC}"
+        echo -e "${YELLOW}   📌 PREVIOUS SESSION DETECTED!${NC}"
+        echo -e "${YELLOW}══════════════════════════════════════${NC}"
+        echo ""
+        echo "Last completed: $LAST_CHECKPOINT"
+        echo ""
+        if ask_yes_no "Do you want to RESUME from where you left off?"; then
+            RESUME_MODE=true
+            echo ""
+            echo -e "${GREEN}✓ Resuming session...${NC}"
+            echo "Skipping completed steps."
+            echo ""
+            sleep 2
+        else
+            RESUME_MODE=false
+            echo ""
+            if ask_yes_no "Start fresh? This will reset all progress."; then
+                rm -rf "$CHECKPOINT_DIR"
+                rm -f "$PROGRESS_FILE"
+                mkdir -p "$CHECKPOINT_DIR"
+                echo -e "${YELLOW}Progress reset. Starting from beginning.${NC}"
+                echo ""
+                sleep 2
+            else
+                echo "Exiting. Run script again to resume."
+                exit 0
+            fi
+        fi
+    else
+        RESUME_MODE=false
+    fi
     echo ""
     echo -e "${CYAN}Press Enter when ready to continue...${NC}"
     read -r
@@ -101,7 +163,48 @@ echo "Welcome to the COMPLETE Session 5 interactive guide!"
 echo ""
 echo "This script will take you through:"
 
-#==============================================================================# BOOTSTRAP: Install Essential Tools (if missing)#==============================================================================STEP_NAME="bootstrap"if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; thenshow_step "Bootstrap: Installing Essential Tools"echo "Checking for essential tools..."echo ""MISSING_TOOLS=()# Check for required toolsif ! command_exists wget; then MISSING_TOOLS+=("wget"); fiif ! command_exists curl; then MISSING_TOOLS+=("curl"); fiif ! command_exists git; then MISSING_TOOLS+=("git"); fiif ! command_exists sudo; then MISSING_TOOLS+=("sudo"); fiif [ ${#MISSING_TOOLS[@]} -gt 0 ]; then    echo -e "${YELLOW}⚠ Missing tools detected: ${MISSING_TOOLS[*]}${NC}"    echo ""    echo "Installing essential tools first..."    echo ""        apt update    apt install -y "${MISSING_TOOLS[@]}"        echo ""    echo -e "${GREEN}✓ Essential tools installed!${NC}"    echo ""else    echo -e "${GREEN}✓ All essential tools present!${NC}"    echo ""fisave_checkpoint "$STEP_NAME"wait_for_confirmationelse    echo -e "${CYAN}⏭  Skipping: Bootstrap (already complete)${NC}"fi
+#==============================================================================
+# BOOTSTRAP: Install Essential Tools (if missing)
+#==============================================================================
+STEP_NAME="bootstrap"
+if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
+
+show_step "Bootstrap: Installing Essential Tools"
+
+echo "Checking for essential tools..."
+echo ""
+
+MISSING_TOOLS=()
+
+# Check for required tools
+if ! command_exists wget; then MISSING_TOOLS+=("wget"); fi
+if ! command_exists curl; then MISSING_TOOLS+=("curl"); fi
+if ! command_exists git; then MISSING_TOOLS+=("git"); fi
+if ! command_exists sudo; then MISSING_TOOLS+=("sudo"); fi
+
+if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+    echo -e "${YELLOW}⚠  Missing tools detected: ${MISSING_TOOLS[*]}${NC}"
+    echo ""
+    echo "Installing essential tools first..."
+    echo ""
+    
+    apt update
+    apt install -y "${MISSING_TOOLS[@]}"
+    
+    echo ""
+    echo -e "${GREEN}✓ Essential tools installed!${NC}"
+    echo ""
+else
+    echo -e "${GREEN}✓ All essential tools present!${NC}"
+    echo ""
+fi
+
+save_checkpoint "$STEP_NAME"
+wait_for_confirmation
+
+else
+    echo -e "${CYAN}⏭  Skipping: Bootstrap (already complete)${NC}"
+fi
 STEP_NAME="part1_intro"
 if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
 
