@@ -35,7 +35,54 @@ By the end of this session, you will be able to:
 - [ ] Use ROS 2 debugging tools
 
 ---
+# PART 0: Pre-Session Setup
 
+## SSH Connection
+
+**Connect to your Raspberry Pi:**
+```bash
+ssh pi@robot[X].local
+```
+(Replace [X] with your robot number)
+
+**Password:** _______________
+
+**Connected successfully?** ☐ Yes  ☐ No
+
+---
+
+## Pre-Flight Check
+
+Run these commands to verify your system is ready:
+```bash
+# Check essential tools
+which git
+which wget  
+which curl
+which nano
+```
+
+**Did all commands show a path?** ☐ Yes  ☐ No
+
+**If NO, tell your instructor immediately.**
+
+---
+
+## Download the Script
+```bash
+cd ~
+wget https://raw.githubusercontent.com/[YOUR-REPO]/interactive_install_resumable.sh
+chmod +x interactive_install_resumable.sh
+```
+
+**Script downloaded successfully?** ☐ Yes  ☐ No
+
+**Now you're ready to start!**
+```bash
+./interactive_install_resumable.sh
+```
+
+---
 # PART 1: Interactive Installation (Write as script runs)
 
 ## Installation Commands - Understanding What You're Doing
