@@ -585,8 +585,11 @@ show_explanation "Testing if ROS 2 commands work.
 
 Lists all active ROS topics (communication channels).
 
-EXPECTED: Should run without errors (shows nothing yet
-since no nodes are running).
+EXPECTED OUTPUT:
+  /parameter_events
+  /rosout
+
+These are ROS 2 system topics - always present even with no user nodes running.
 
 CONNECTION TO SESSION 2: Same command you used in TurtleSim!"
 
@@ -597,7 +600,8 @@ show_command "ros2 node list"
 
 show_explanation "Listing all active ROS nodes (programs).
 
-EXPECTED: Empty (no nodes running yet)
+EXPECTED: Usually empty (no user nodes running yet).
+May occasionally show ROS daemon nodes.
 
 CONNECTION TO SESSION 2: Like 'ros2 node list' in TurtleSim
 that showed /turtlesim and /teleop_turtle!"
@@ -1665,9 +1669,11 @@ WHAT IT DOES:
   • Publishes to: /freenove/camera/image_raw
 
 EXPECTED OUTPUT:
-  [INFO] [camera_node]: Camera initialized
-  [INFO] [camera_node]: Publishing at 30 Hz
-  [INFO] [camera_node]: Image published (640x480)
+  [INFO] [camera]: Initializing Picamera2...
+  [INFO] [camera]: ✓ Picamera2 initialized successfully
+  [INFO] [camera]:   Resolution: 640x480
+  [INFO] [camera]:   Format: RGB888
+  [INFO] [camera]: Camera node started - publishing to /freenove/camera/image_raw at 30 Hz
 
 TROUBLESHOOTING:
   • If camera error: Check connections
@@ -1760,10 +1766,10 @@ WHAT IT DOES:
   • Publishes velocity commands to: /freenove/cmd_vel
 
 EXPECTED OUTPUT:
-  [INFO] [lane_follower]: Node started
-  [INFO] [lane_follower]: Processing image...
-  [INFO] [lane_follower]: Lines detected: 2
-  [INFO] [lane_follower]: Publishing cmd_vel: linear=0.2, angular=0.1
+  [INFO] [lane_follower]: Lane follower node started
+  [INFO] [lane_follower]: Subscribing to: /freenove/camera/image_raw
+  [INFO] [lane_follower]: Publishing to: /freenove/cmd_vel
+  [INFO] [lane_follower]: Lines detected: 2 | Steering: 0.15 rad | Speed: 0.25 m/s
 
 WHAT YOU'LL SEE:
   • Continuous stream of processing messages
@@ -1872,10 +1878,12 @@ WHAT IT DOES:
   • Moves robot!
 
 EXPECTED OUTPUT:
-  [INFO] [motor_control]: Motor controller initialized
-  [INFO] [motor_control]: Subscribed to /freenove/cmd_vel
-  [INFO] [motor_control]: Received cmd: linear=0.2, angular=0.1
-  [INFO] [motor_control]: Setting motors...
+  [INFO] [motor_control]: Freenove motor controller initialized
+  [INFO] [motor_control]: Motor control node started
+  [INFO] [motor_control]: Subscribing to: /freenove/cmd_vel
+  [INFO] [motor_control]: Base speed: 50 (PWM range: 0-100)
+  [INFO] [motor_control]: Send Twist messages to control the robot!
+  [INFO] [motor_control]: Cmd received - Lin: 0.25 m/s | Ang: 0.15 rad/s | L: 65 R: 35 (PWM)
 
 WHAT SHOULD HAPPEN:
   • Wheels start moving!
