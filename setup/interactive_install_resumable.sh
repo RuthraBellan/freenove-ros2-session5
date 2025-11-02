@@ -56,41 +56,6 @@ wait_for_user() {
 }
 
 wait_for_confirmation() {
-
-# Check for previous progress
-    LAST_CHECKPOINT=$(get_last_checkpoint)
-    if [ -n "$LAST_CHECKPOINT" ]; then
-        echo -e "${YELLOW}══════════════════════════════════════${NC}"
-        echo -e "${YELLOW}   📌 PREVIOUS SESSION DETECTED!${NC}"
-        echo -e "${YELLOW}══════════════════════════════════════${NC}"
-        echo ""
-        echo "Last completed: $LAST_CHECKPOINT"
-        echo ""
-        if ask_yes_no "Do you want to RESUME from where you left off?"; then
-            RESUME_MODE=true
-            echo ""
-            echo -e "${GREEN}✓ Resuming session...${NC}"
-            echo "Skipping completed steps."
-            echo ""
-            sleep 2
-        else
-            RESUME_MODE=false
-            echo ""
-            if ask_yes_no "Start fresh? This will reset all progress."; then
-                rm -rf "$CHECKPOINT_DIR"
-                rm -f "$PROGRESS_FILE"
-                mkdir -p "$CHECKPOINT_DIR"
-                echo -e "${YELLOW}Progress reset. Starting from beginning.${NC}"
-                echo ""
-                sleep 2
-            else
-                echo "Exiting. Run script again to resume."
-                exit 0
-            fi
-        fi
-    else
-        RESUME_MODE=false
-    fi
     echo ""
     echo -e "${CYAN}Press Enter when ready to continue...${NC}"
     read -r
@@ -162,7 +127,68 @@ echo ""
 echo "Welcome to the COMPLETE Session 5 interactive guide!"
 echo ""
 echo "This script will take you through:"
+echo "  ✓ Part 1: Install ROS 2 Humble"
+echo "  ✓ Part 2: Hardware Verification"
+echo "  ✓ Part 3: Download Code"
+echo "  ✓ Part 4: Create Workspace"
+echo "  ✓ Part 5: Configure Package"
+echo "  ✓ Part 6: Build Workspace"
+echo "  ✓ Part 7: Run System"
+echo "  ✓ Part 8: Debugging Tools"
+echo ""
+echo "HOW IT WORKS:"
+echo "  1. Read the explanation"
+echo "  2. Write it in your activity sheet"
+echo "  3. Press Enter to execute"
+echo "  4. Observe the result"
+echo ""
+echo "⏱️  Total time: 2.5-3 hours"
+echo ""
+echo "Ready? Let's begin!"
+echo ""
+read -p "Press Enter to start..."
 
+# Check for previous progress (ONE TIME CHECK)
+LAST_CHECKPOINT=$(get_last_checkpoint)
+if [ -n "$LAST_CHECKPOINT" ]; then
+    echo -e "${YELLOW}══════════════════════════════════════${NC}"
+    echo -e "${YELLOW}   📌 PREVIOUS SESSION DETECTED!${NC}"
+    echo -e "${YELLOW}══════════════════════════════════════${NC}"
+    echo ""
+    echo "Last completed: $LAST_CHECKPOINT"
+    echo ""
+    if ask_yes_no "Do you want to RESUME from where you left off?"; then
+        RESUME_MODE=true
+        echo ""
+        echo -e "${GREEN}✓ Resuming session...${NC}"
+        echo "Skipping completed steps."
+        echo ""
+        sleep 2
+    else
+        RESUME_MODE=false
+        echo ""
+        if ask_yes_no "Start fresh? This will reset all progress."; then
+            rm -rf "$CHECKPOINT_DIR"
+            rm -f "$PROGRESS_FILE"
+            mkdir -p "$CHECKPOINT_DIR"
+            echo -e "${YELLOW}Progress reset. Starting from beginning.${NC}"
+            echo ""
+            sleep 2
+        else
+            echo "Exiting. Run script again to resume."
+            exit 0
+        fi
+    fi
+else
+    RESUME_MODE=false
+fi
+
+# Check if running as root (allow in Docker)
+if [ "$EUID" -eq 0 ] && [ ! -f /.dockerenv ]; then 
+   echo "Please do not run this script as root (with sudo)"
+   echo "Run it as normal user: ./interactive_install_resumable.sh"
+   exit 1
+fi
 #==============================================================================
 # BOOTSTRAP: Install Essential Tools (if missing)
 #==============================================================================
