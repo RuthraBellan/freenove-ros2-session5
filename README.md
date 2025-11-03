@@ -29,8 +29,8 @@ ssh pi@robot1.local
 ```bash
 cd ~
 wget https://raw.githubusercontent.com/RuthraBellan/freenove-ros2-session5/main/setup/interactive_install_resumable.sh
-chmod +x interactive_install.sh
-./interactive_install.sh
+chmod +x interactive_install_resumable.sh
+./interactive_install_resumable.sh
 ```
 
 ### 3. Follow Along with Activity Sheet
@@ -46,7 +46,7 @@ chmod +x interactive_install.sh
 ```
 freenove-ros2-session5/
 ├── setup/                    # Installation scripts
-│   ├── interactive_install.sh    # Main interactive script 
+│   ├── interactive_install_resumable.sh    # Main interactive script 
 │   ├── commands.md              # All commands reference
 │   └── QUICK_REFERENCE.md       # Student cheat sheet
 ├── nodes/                    # ROS 2 Python nodes
@@ -94,7 +94,7 @@ freenove-ros2-session5/
 ## Detailed Instructions
 
 ### Option 1: Interactive Learning (Recommended)
-Run `interactive_install.sh` - explains each command before executing.
+Run `interactive_install_resumable.sh` - explains each command before executing.
 Perfect for learning and understanding each step!
 
 ### Option 2: Manual Installation
