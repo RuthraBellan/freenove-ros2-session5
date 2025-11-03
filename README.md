@@ -27,6 +27,7 @@ ssh pi@robot1.local
 
 ### 2. Download and Run Interactive Installation
 ```bash
+cd ~
 wget https://raw.githubusercontent.com/RuthraBellan/freenove-ros2-session5/main/setup/interactive_install_resumable.sh
 chmod +x interactive_install.sh
 ./interactive_install.sh
