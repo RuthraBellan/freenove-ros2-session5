@@ -695,6 +695,100 @@ wait_for_user
 execute_command "pip3 install numpy"
 
 #==============================================================================
+# Step 14a: Install Camera System (libcamera + picamera2)
+#==============================================================================
+
+else
+    echo -e "${CYAN}⏭  Skipping: Step 14 (already complete)${NC}"
+    sleep 1
+fi
+
+STEP_NAME="step14a_install_camera_system"
+if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
+
+show_step "Step 14a/50: Install Camera System for Ubuntu Server"
+
+show_command "sudo apt install -y libcamera-dev libcamera-tools python3-libcamera"
+
+show_explanation "Installing libcamera system for Raspberry Pi Camera.
+
+WHAT IS LIBCAMERA?
+  • Modern camera stack for Raspberry Pi
+  • Replaces old raspistill/raspivid commands
+  • Required for picamera2 library
+
+PACKAGES INSTALLED:
+  • libcamera-dev: Development libraries
+  • libcamera-tools: Command-line tools (libcamera-still)
+  • python3-libcamera: Python bindings
+
+WHY: camera_node.py needs these to communicate with Pi Camera!"
+
+save_checkpoint "$STEP_NAME"
+wait_for_user
+execute_command "sudo apt install -y libcamera-dev libcamera-tools python3-libcamera"
+
+show_command "pip3 install picamera2 --break-system-packages"
+
+show_explanation "Installing picamera2 via pip.
+
+UBUNTU SERVER NOTE:
+  • picamera2 is NOT in Ubuntu's apt repositories
+  • Must install from PyPI (Python Package Index)
+  • This is normal for Ubuntu Server!
+
+WHY --break-system-packages?
+  • Ubuntu 22.04+ protects system Python
+  • This flag is required for pip install
+  • Safe for our robotics project
+
+WHAT YOU GET:
+  • Picamera2 library (official Pi Camera API)
+  • Used by camera_node.py to capture images"
+
+wait_for_user
+execute_command "pip3 install picamera2 --break-system-packages"
+
+show_command "pip3 install piexif pillow --break-system-packages"
+
+show_explanation "Installing picamera2 dependencies.
+
+WHAT THESE DO:
+  • piexif: Handles image EXIF metadata
+  • pillow: Python Imaging Library (PIL)
+
+WHY: picamera2 needs these to process camera images properly."
+
+wait_for_user
+execute_command "pip3 install piexif pillow --break-system-packages"
+
+show_command "sudo usermod -aG video,gpio,i2c $USER"
+
+show_explanation "Adding your user to hardware access groups.
+
+GROUPS EXPLAINED:
+  • video: Access camera devices
+  • gpio: Control GPIO pins (motors, sensors)
+  • i2c: Access I2C devices (motor controller)
+
+WHY: Without these permissions, camera and motors won't work!
+
+NOTE: Changes take effect after logout or reboot."
+
+save_checkpoint "$STEP_NAME"
+wait_for_user
+execute_command "sudo usermod -aG video,gpio,i2c $USER"
+
+#==============================================================================
+# Step 15: Test ROS Commands
+#==============================================================================
+
+else
+    echo -e "${CYAN}⏭  Skipping: Step 14a (already complete)${NC}"
+    sleep 1
+fi
+
+#==============================================================================
 # Step 15: Test ROS Commands
 #==============================================================================
 
@@ -830,6 +924,97 @@ WHY: ROS 2 will use this library to control motors and camera."
 save_checkpoint "$STEP_NAME"
     wait_for_user
     execute_command "cd ~ && git clone --depth 1 $FREENOVE_REPO"
+fi
+
+#==============================================================================
+# Step 16a: Install Freenove Hardware Library
+#==============================================================================
+
+else
+    echo -e "${CYAN}⏭  Skipping: Step 16 (already complete)${NC}"
+    sleep 1
+fi
+
+STEP_NAME="step16a_install_freenove_hardware_lib"
+if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
+
+show_step "Step 16a/50: Install Freenove Hardware Library"
+
+show_command "cd ~/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code && sudo python3 setup.py"
+
+show_explanation "Running Freenove's installation script.
+
+WHAT THIS SCRIPT DOES:
+  • Installs python3-pyqt5 (GUI library)
+  • Installs gpiozero (GPIO control)
+  • Installs numpy (if not already installed)
+  • Installs rpi-ws281x-python (LED control)
+  • Configures camera in /boot/firmware/config.txt
+  • Enables SPI interface
+
+INTERACTIVE PROMPTS:
+  You will be asked:
+  1. Camera model: ov5647 or imx219
+     (The kit includes OV5647)
+  
+  2. (Pi 5 only) Camera port: cam0 or cam1
+     (Check which port you connected the cable to)
+
+â±ï¸  TIME: 2-5 minutes
+
+IMPORTANT: A reboot will be required after this!"
+
+echo ""
+echo "⚠️  PAY ATTENTION to the prompts!"
+echo ""
+
+save_checkpoint "$STEP_NAME"
+wait_for_user
+execute_command "cd ~/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code && sudo python3 setup.py"
+
+show_manual_task "REBOOT REQUIRED!
+
+The Freenove setup.py modified system configuration files.
+You MUST reboot for changes to take effect.
+
+WHAT TO DO:
+  1. This script will pause here
+  2. Note your progress (Step 16a complete)
+  3. Reboot your Raspberry Pi: sudo reboot
+  4. After reboot, SSH back in
+  5. Run this script again: ./interactive_install_resumable.sh
+  6. The script will resume from Step 17
+
+WHY REBOOT?
+  • Camera configuration changes need reboot
+  • SPI interface enabling needs reboot
+  • GPIO permissions need session restart"
+
+echo ""
+if ask_yes_no "Ready to reboot now?"; then
+    echo ""
+    echo -e "${GREEN}Rebooting in 5 seconds...${NC}"
+    echo "After reboot, run: ./interactive_install_resumable.sh"
+    sleep 5
+    save_checkpoint "$STEP_NAME"
+    sudo reboot
+else
+    echo ""
+    echo -e "${YELLOW}⚠️  Remember to reboot before continuing!${NC}"
+    echo "When ready: sudo reboot"
+    echo "After reboot: ./interactive_install_resumable.sh"
+    echo ""
+    save_checkpoint "$STEP_NAME"
+    exit 0
+fi
+
+#==============================================================================
+# Step 17: Test Motors
+#==============================================================================
+
+else
+    echo -e "${CYAN}⏭  Skipping: Step 16a (already complete)${NC}"
+    sleep 1
 fi
 
 #==============================================================================
@@ -1388,11 +1573,11 @@ wait_for_confirmation
 #==============================================================================
 
 else
-    echo -e "${CYAN}⏭  Skipping: Configure Package (already complete)${NC}"
+    echo -e "${CYAN}⏭  Skipping: Part 4 (already complete)${NC}"
     sleep 1
 fi
 
-STEP_NAME="step27_configure_entry_points_in_setu"
+STEP_NAME="step27_configure_entry_points_improved"
 if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
 
 show_step "Step 27/50: Configure Entry Points in setup.py"
@@ -1412,30 +1597,90 @@ WE NEED TO ADD:
 This goes in the entry_points section of setup.py."
 
 echo ""
-echo "I'll add these automatically for you..."
+echo "Checking setup.py and fixing if needed..."
 echo ""
-wait_for_confirmation
 
-# Auto-edit setup.py
+save_checkpoint "$STEP_NAME"
+wait_for_user
+
+# Setup file path
 SETUP_FILE=~/ros2_ws/src/freenove_car/setup.py
 
-# Check if entry points already exist
-if grep -q "camera_node" "$SETUP_FILE"; then
-    echo -e "${YELLOW}Entry points already configured!${NC}"
+# Check if entry points already configured correctly
+if grep -q "camera_node = freenove_car.camera_node:main" "$SETUP_FILE" && \
+   grep -q "motor_control_node = freenove_car.motor_control_node:main" "$SETUP_FILE" && \
+   grep -q "lane_follower_node = freenove_car.lane_follower_node:main" "$SETUP_FILE"; then
+    echo -e "${GREEN}✓ Entry points already configured correctly!${NC}"
 else
-    # Add entry points
-    sed -i "/entry_points={/a\\
+    # Count how many entry_points sections exist
+    ENTRY_POINTS_COUNT=$(grep -c "entry_points\s*=" "$SETUP_FILE")
+    
+    if [ "$ENTRY_POINTS_COUNT" -gt 1 ]; then
+        echo -e "${YELLOW}⚠️  WARNING: Multiple entry_points sections detected!${NC}"
+        echo "This will cause build errors. Fixing..."
+        
+        # Backup the file
+        cp "$SETUP_FILE" "${SETUP_FILE}.backup"
+        echo "Backup created: ${SETUP_FILE}.backup"
+        
+        # Remove all entry_points sections and add one correct one
+        # This uses a Python script for reliable editing
+        python3 << 'PYTHON_SCRIPT'
+import re
+
+setup_file = "~/ros2_ws/src/freenove_car/setup.py"
+setup_file = setup_file.replace("~", "/home/" + "$(whoami)")
+
+with open(setup_file, 'r') as f:
+    content = f.read()
+
+# Remove all entry_points sections (both styles)
+content = re.sub(r'entry_points\s*=\s*{[^}]*},?\s*', '', content, flags=re.DOTALL)
+
+# Find the setup() function and add entry_points before the closing )
+entry_points_block = """    entry_points={
+        'console_scripts': [
+            'camera_node = freenove_car.camera_node:main',
+            'motor_control_node = freenove_car.motor_control_node:main',
+            'lane_follower_node = freenove_car.lane_follower_node:main',
+        ],
+    },
+"""
+
+# Insert before the last ) of setup()
+content = re.sub(r'(\s*)\)', r'\n' + entry_points_block + r'\1)', content, count=1, flags=re.MULTILINE)
+
+with open(setup_file, 'w') as f:
+    f.write(content)
+PYTHON_SCRIPT
+        
+        echo -e "${GREEN}✓ Entry points fixed!${NC}"
+        
+    else
+        # Only one or no entry_points section - add our entry points
+        if grep -q "entry_points\s*=" "$SETUP_FILE"; then
+            echo "Updating existing entry_points section..."
+            # Entry points exists, but doesn't have our nodes - update it
+            sed -i "/entry_points\s*=\s*{/,/},/ c\\
+    entry_points={\\
         'console_scripts': [\\
             'camera_node = freenove_car.camera_node:main',\\
             'motor_control_node = freenove_car.motor_control_node:main',\\
             'lane_follower_node = freenove_car.lane_follower_node:main',\\
-        ]," "$SETUP_FILE"
-    
-    echo -e "${GREEN}✓ Entry points added to setup.py${NC}"
+        ],\\
+    }," "$SETUP_FILE"
+        else
+            echo "Adding entry_points section..."
+            # No entry_points at all - add it before the closing ) of setup()
+            sed -i '/^)/i\    entry_points={\n        '\''console_scripts'\'': [\n            '\''camera_node = freenove_car.camera_node:main'\'',\n            '\''motor_control_node = freenove_car.motor_control_node:main'\'',\n            '\''lane_follower_node = freenove_car.lane_follower_node:main'\'',\n        ],\n    },' "$SETUP_FILE"
+        fi
+        
+        echo -e "${GREEN}✓ Entry points added to setup.py${NC}"
+    fi
 fi
 
 echo ""
-echo "WHAT WAS ADDED:"
+echo "CONFIGURED ENTRY POINTS:"
 echo "  'console_scripts': ["
 echo "    'camera_node = freenove_car.camera_node:main',"
 echo "    'motor_control_node = freenove_car.motor_control_node:main',"
@@ -1447,10 +1692,11 @@ echo "  ros2 run freenove_car camera_node"
 echo "  ros2 run freenove_car motor_control_node"
 echo "  ros2 run freenove_car lane_follower_node"
 echo ""
-echo "✍️  In your activity sheet:"
+echo "✏️  In your activity sheet:"
 echo "  • What do entry points do?"
 echo "  • Why are they needed?"
 echo ""
+
 save_checkpoint "$STEP_NAME"
 wait_for_confirmation
 
