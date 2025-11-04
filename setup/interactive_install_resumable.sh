@@ -1008,15 +1008,6 @@ else
     sleep 1
 fi
 
-#==============================================================================
-# Step 17: Test Motors
-#==============================================================================
-
-else
-    echo -e "${CYAN}⏭  Skipping: Step 16 (already complete)${NC}"
-    sleep 1
-fi
-
 STEP_NAME="step17_test_motors_manual_task"
 if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
 
