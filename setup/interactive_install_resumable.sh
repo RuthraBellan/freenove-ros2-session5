@@ -718,15 +718,14 @@ WHAT IS LIBCAMERA?
   • Required for picamera2 library
 
 PACKAGES INSTALLED:
-  • libcamera-dev: Development libraries
-  • libcamera-tools: Command-line tools (libcamera-still)
-  • python3-libcamera: Python bindings
+  • libcamera-dev: Development libraries (includes Python bindings)
+  • libcamera-tools: Command-line tools (libcamera-still, libcamera-vid)
 
 WHY: camera_node.py needs these to communicate with Pi Camera!"
 
 save_checkpoint "$STEP_NAME"
 wait_for_user
-execute_command "sudo apt install -y libcamera-dev libcamera-tools python3-libcamera"
+execute_command "sudo apt install -y libcamera-dev libcamera-tools"
 
 show_command "pip3 install picamera2 --break-system-packages"
 
@@ -747,7 +746,7 @@ WHAT YOU GET:
   • Used by camera_node.py to capture images"
 
 wait_for_user
-execute_command "pip3 install picamera2 --break-system-packages"
+execute_command "pip3 install picamera2"
 
 show_command "pip3 install piexif pillow --break-system-packages"
 
@@ -760,7 +759,7 @@ WHAT THESE DO:
 WHY: picamera2 needs these to process camera images properly."
 
 wait_for_user
-execute_command "pip3 install piexif pillow --break-system-packages"
+execute_command "pip3 install piexif pillow"
 
 show_command "sudo usermod -aG video,gpio,i2c $USER"
 
@@ -788,14 +787,6 @@ else
     sleep 1
 fi
 
-#==============================================================================
-# Step 15: Test ROS Commands
-#==============================================================================
-
-else
-    echo -e "${CYAN}⏭  Skipping: Step 14 (already complete)${NC}"
-    sleep 1
-fi
 
 STEP_NAME="step15_test_ros_2_commands"
 if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
