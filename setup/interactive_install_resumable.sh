@@ -727,20 +727,15 @@ save_checkpoint "$STEP_NAME"
 wait_for_user
 execute_command "sudo apt install -y libcamera-dev libcamera-tools"
 
-show_command "pip3 install pylibcamera"
+show_command "pip3 install rpi-libcamera"
 
 show_explanation "Installing Python bindings for libcamera.
 
-WHAT IS PYLIBCAMERA?
-  • Python wrapper for libcamera C++ library
-  • Required for picamera2 to access libcamera
-  • On Ubuntu Server, must be installed separately
-
-NOTE: On Raspberry Pi OS this comes automatically,
-but Ubuntu Server needs explicit installation."
+RPI-LIBCAMERA provides Python access to libcamera on Ubuntu.
+This is the missing link between picamera2 and libcamera!"
 
 wait_for_user
-execute_command "pip3 install pylibcamera"
+execute_command "pip3 install rpi-libcamera"
 
 show_command "pip3 install picamera2"
 
