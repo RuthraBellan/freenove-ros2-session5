@@ -361,7 +361,7 @@ We're enabling Universe so we can install ROS packages."
 
 save_checkpoint "$STEP_NAME"
 wait_for_user
-execute_command "sudo add-apt-repository universe -y"
+execute_command "sudo add-apt-repository universe -y || true"
 
 #==============================================================================
 # Step 5: Add ROS 2 GPG Key
