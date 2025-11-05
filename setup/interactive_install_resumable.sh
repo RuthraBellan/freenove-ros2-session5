@@ -695,99 +695,229 @@ wait_for_user
 execute_command "pip3 install numpy"
 
 #==============================================================================
-# Step 14a: Install Camera System (libcamera + picamera2)
+# Step 14a: Install Camera System (V4L2 for Ubuntu 22.04)
 #==============================================================================
-
-else
-    echo -e "${CYAN}⏭  Skipping: Step 14 (already complete)${NC}"
-    sleep 1
-fi
 
 STEP_NAME="step14a_install_camera_system"
 if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
 
-show_step "Step 14a/50: Install Camera System for Ubuntu Server"
+show_step "Step 14a/50: Install V4L2 Camera System"
 
-show_command "sudo apt install -y libcamera-dev libcamera-tools python3-libcamera"
+show_explanation "Installing V4L2 camera system for Ubuntu 22.04.
 
-show_explanation "Installing libcamera system for Raspberry Pi Camera.
+WHAT IS V4L2?
+  • Video4Linux2 - standard Linux camera interface
+  • Works with Raspberry Pi camera via kernel drivers
+  • Direct ROS 2 integration available
+  • No picamera2/libcamera compilation needed!
 
-WHAT IS LIBCAMERA?
-  • Modern camera stack for Raspberry Pi
-  • Replaces old raspistill/raspivid commands
-  • Required for picamera2 library
+WHAT WE'LL INSTALL:
+  • libraspberrypi-bin: Raspberry Pi utilities
+  • v4l-utils: V4L2 tools for testing
+  • ROS 2 v4l2_camera: Camera node for ROS
 
-PACKAGES INSTALLED:
-  • libcamera-dev: Development libraries (includes Python bindings)
-  • libcamera-tools: Command-line tools (libcamera-still, libcamera-vid)
+This will take 5 minutes!"
 
-WHY: camera_node.py needs these to communicate with Pi Camera!"
+wait_for_user
+
+# Install V4L2 support
+show_command "sudo apt install -y libraspberrypi-bin v4l-utils"
+
+execute_command "sudo apt install -y libraspberrypi-bin v4l-utils"
+
+# Install ROS 2 camera packages
+show_command "sudo apt install -y ros-humble-v4l2-camera ros-humble-image-transport-plugins"
+
+show_explanation "Installing ROS 2 camera packages.
+
+PACKAGES:
+  • ros-humble-v4l2-camera: V4L2 camera node
+  • ros-humble-image-transport-plugins: Image compression
+
+These integrate camera directly with ROS 2!"
+
+wait_for_user
+execute_command "sudo apt install -y ros-humble-v4l2-camera ros-humble-image-transport-plugins"
+
+# Add user to video group
+show_command "sudo usermod -aG video,gpio,i2c \$USER"
+
+show_explanation "Adding user to hardware groups.
+
+GROUPS:
+  • video: Camera access
+  • gpio: GPIO pins
+  • i2c: Motor controller
+
+Changes take effect after reboot."
+
+wait_for_user
+execute_command "sudo usermod -aG video,gpio,i2c \$USER"
+
+# Configure camera in config.txt
+show_manual_task "CAMERA CONFIGURATION
+
+We need to enable camera in /boot/firmware/config.txt
+
+Checking configuration..."
+
+echo ""
+if grep -q "^start_x=1" /boot/firmware/config.txt 2>/dev/null; then
+    echo -e "\${GREEN}✓ Camera already enabled (start_x=1)\${NC}"
+elif grep -q "^start_x=0" /boot/firmware/config.txt 2>/dev/null; then
+    echo -e "\${YELLOW}⚠ Camera disabled! Enabling...\${NC}"
+    sudo sed -i 's/^start_x=0/start_x=1/' /boot/firmware/config.txt
+    echo -e "\${GREEN}✓ Camera enabled\${NC}"
+elif grep -q "^#start_x" /boot/firmware/config.txt 2>/dev/null; then
+    echo -e "\${YELLOW}⚠ Camera commented out! Enabling...\${NC}"
+    sudo sed -i 's/^#start_x=1/start_x=1/' /boot/firmware/config.txt
+    echo -e "\${GREEN}✓ Camera enabled\${NC}"
+else
+    echo -e "\${YELLOW}⚠ Adding camera configuration...\${NC}"
+    echo "start_x=1" | sudo tee -a /boot/firmware/config.txt
+    echo -e "\${GREEN}✓ Camera enabled\${NC}"
+fi
+
+echo ""
+echo -e "\${YELLOW}⚠ REBOOT REQUIRED for camera to work!\${NC}"
+echo ""
 
 save_checkpoint "$STEP_NAME"
-wait_for_user
-execute_command "sudo apt install -y libcamera-dev libcamera-tools"
+wait_for_confirmation
 
-show_command "pip3 install rpi-libcamera"
+else
+    echo -e "${CYAN}⏭  Skipping: Step 14a (already complete)${NC}"
+    sleep 1
+fi
 
-show_explanation "Installing Python bindings for libcamera.
+#==============================================================================
+# Step 14b: Create Camera Test Script
+#==============================================================================
 
-RPI-LIBCAMERA provides Python access to libcamera on Ubuntu.
-This is the missing link between picamera2 and libcamera!"
+STEP_NAME="step14b_create_camera_test"
+if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
 
-wait_for_user
-execute_command "pip3 install rpi-libcamera"
+show_step "Step 14b/50: Create Camera Test Script"
 
-show_command "pip3 install picamera2"
+show_explanation "Creating test script to verify camera works.
 
-show_explanation "Installing picamera2 via pip.
+This script will:
+  • Open /dev/video0
+  • Capture a test image
+  • Save as test_image.jpg
 
-UBUNTU SERVER NOTE:
-  • picamera2 is NOT in Ubuntu's apt repositories
-  • Must install from PyPI (Python Package Index)
-  • This is normal for Ubuntu Server!
-
-WHY --break-system-packages?
-  • Ubuntu 22.04+ protects system Python
-  • This flag is required for pip install
-  • Safe for our robotics project
-
-WHAT YOU GET:
-  • Picamera2 library (official Pi Camera API)
-  • Used by camera_node.py to capture images"
+You'll run this after rebooting!"
 
 wait_for_user
-execute_command "pip3 install picamera2"
 
-show_command "pip3 install piexif pillow --break-system-packages"
+cat > ~/test_camera_v4l2.py << 'CAMERA_TEST_EOF'
+#!/usr/bin/env python3
+# test_camera_v4l2.py
 
-show_explanation "Installing picamera2 dependencies.
+import cv2
+import time
 
-WHAT THESE DO:
-  • piexif: Handles image EXIF metadata
-  • pillow: Python Imaging Library (PIL)
+print("Testing V4L2 Camera...")
+print("-" * 40)
 
-WHY: picamera2 needs these to process camera images properly."
+# Open camera
+print("Opening /dev/video0...")
+cap = cv2.VideoCapture('/dev/video0', cv2.CAP_V4L2)
 
-wait_for_user
-execute_command "pip3 install piexif pillow"
+if not cap.isOpened():
+    print("❌ ERROR: Could not open camera!")
+    print("\nTroubleshooting:")
+    print("  1. Check if /dev/video0 exists: ls -l /dev/video*")
+    print("  2. Check camera detection: vcgencmd get_camera")
+    print("  3. Check config.txt has: start_x=1")
+    print("  4. Did you reboot after Step 14a?")
+    exit(1)
 
-show_command "sudo usermod -aG video,gpio,i2c $USER"
+print("✓ Camera opened successfully!")
 
-show_explanation "Adding your user to hardware access groups.
+# Set resolution
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-GROUPS EXPLAINED:
-  • video: Access camera devices
-  • gpio: Control GPIO pins (motors, sensors)
-  • i2c: Access I2C devices (motor controller)
+print(f"Resolution: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
 
-WHY: Without these permissions, camera and motors won't work!
+# Warm up camera
+print("\nWarming up camera (2 seconds)...")
+time.sleep(2)
 
-NOTE: Changes take effect after logout or reboot."
+# Capture frame
+print("Capturing image...")
+ret, frame = cap.read()
+
+if ret:
+    filename = f"test_image_{int(time.time())}.jpg"
+    cv2.imwrite(filename, frame)
+    print(f"✓ Image saved as: {filename}")
+    print(f"  Size: {frame.shape[1]}x{frame.shape[0]}")
+else:
+    print("❌ ERROR: Could not capture frame!")
+
+# Release camera
+cap.release()
+print("\n✓ Camera test complete!")
+CAMERA_TEST_EOF
+
+chmod +x ~/test_camera_v4l2.py
+
+echo ""
+echo -e "\${GREEN}✓ Camera test script created: ~/test_camera_v4l2.py\${NC}"
+echo ""
 
 save_checkpoint "$STEP_NAME"
-wait_for_user
-execute_command "sudo usermod -aG video,gpio,i2c $USER"
+wait_for_confirmation
 
+else
+    echo -e "${CYAN}⏭  Skipping: Step 14b (already complete)${NC}"
+    sleep 1
+fi
+
+#==============================================================================
+# Reboot Notice
+#==============================================================================
+
+show_manual_task "⚠️  REBOOT REQUIRED! ⚠️
+
+Camera configuration has been updated in /boot/firmware/config.txt
+
+You MUST reboot for camera to work!
+
+WHAT TO DO:
+  1. This script will pause here
+  2. Note your progress (Step 14b complete)
+  3. Reboot: sudo reboot
+  4. After reboot, SSH back in
+  5. Test camera: python3 ~/test_camera_v4l2.py
+  6. If camera works, resume: ./interactive_install_resumable.sh
+
+WHY REBOOT?
+  • Camera driver needs to load
+  • start_x=1 takes effect on boot
+  • GPU memory allocated for camera"
+
+echo ""
+if ask_yes_no "Ready to reboot now?"; then
+    echo ""
+    echo -e "${GREEN}Rebooting in 5 seconds...${NC}"
+    echo "After reboot:"
+    echo "  1. SSH back in"
+    echo "  2. Test camera: python3 ~/test_camera_v4l2.py"
+    echo "  3. Resume script: ./interactive_install_resumable.sh"
+    sleep 5
+    sudo reboot
+else
+    echo ""
+    echo -e "${YELLOW}⚠️  Remember to reboot before continuing!${NC}"
+    echo "When ready: sudo reboot"
+    echo "After reboot: python3 ~/test_camera_v4l2.py"
+    echo "Then: ./interactive_install_resumable.sh"
+    echo ""
+    exit 0
+fi
 #==============================================================================
 # Step 15: Test ROS Commands
 #==============================================================================
