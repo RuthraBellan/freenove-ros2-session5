@@ -695,7 +695,7 @@ wait_for_user
 execute_command "pip3 install numpy"
 
 #==============================================================================
-# Step 14a: Install Camera System (V4L2 for Ubuntu 22.04)
+# Step 14a: Install Camera System (V4L2 for USB Cameras)
 #==============================================================================
 
 STEP_NAME="step14a_install_camera_system"
@@ -703,27 +703,27 @@ if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
 
 show_step "Step 14a/50: Install V4L2 Camera System"
 
-show_explanation "Installing V4L2 camera system for Ubuntu 22.04.
+show_explanation "Installing V4L2 camera system for USB cameras.
 
 WHAT IS V4L2?
   • Video4Linux2 - standard Linux camera interface
-  • Works with Raspberry Pi camera via kernel drivers
+  • Works with USB webcams via kernel drivers
   • Direct ROS 2 integration available
-  • No picamera2/libcamera compilation needed!
+  • No special configuration needed!
 
 WHAT WE'LL INSTALL:
-  • libraspberrypi-bin: Raspberry Pi utilities
   • v4l-utils: V4L2 tools for testing
   • ROS 2 v4l2_camera: Camera node for ROS
+  • Python OpenCV: For image processing
 
 This will take 5 minutes!"
 
 wait_for_user
 
 # Install V4L2 support
-show_command "sudo apt install -y libraspberrypi-bin v4l-utils"
+show_command "sudo apt install -y v4l-utils"
 
-execute_command "sudo apt install -y libraspberrypi-bin v4l-utils"
+execute_command "sudo apt install -y v4l-utils"
 
 # Install ROS 2 camera packages
 show_command "sudo apt install -y ros-humble-v4l2-camera ros-humble-image-transport-plugins"
@@ -749,49 +749,41 @@ GROUPS:
   • gpio: GPIO pins
   • i2c: Motor controller
 
-Changes take effect after reboot."
+Changes take effect after logout/login or reboot."
 
 wait_for_user
 execute_command "sudo usermod -aG video,gpio,i2c \$USER"
 
-# Configure camera in config.txt
-show_manual_task "CAMERA CONFIGURATION
+# Verify camera detection
+show_manual_task "CAMERA VERIFICATION
 
-We need to enable camera in /boot/firmware/config.txt
-
-Checking configuration..."
+Checking for USB camera..."
 
 echo ""
-if grep -q "^start_x=1" /boot/firmware/config.txt 2>/dev/null; then
-    echo -e "\${GREEN}✓ Camera already enabled (start_x=1)\${NC}"
-elif grep -q "^start_x=0" /boot/firmware/config.txt 2>/dev/null; then
-    echo -e "\${YELLOW}⚠ Camera disabled! Enabling...\${NC}"
-    sudo sed -i 's/^start_x=0/start_x=1/' /boot/firmware/config.txt
-    echo -e "\${GREEN}✓ Camera enabled\${NC}"
-elif grep -q "^#start_x" /boot/firmware/config.txt 2>/dev/null; then
-    echo -e "\${YELLOW}⚠ Camera commented out! Enabling...\${NC}"
-    sudo sed -i 's/^#start_x=1/start_x=1/' /boot/firmware/config.txt
-    echo -e "\${GREEN}✓ Camera enabled\${NC}"
+if ls /dev/video* 2>/dev/null; then
+    echo -e "\${GREEN}✓ Camera device(s) detected!\${NC}"
+    echo ""
+    echo "Checking camera formats..."
+    v4l2-ctl --device=/dev/video0 --list-formats-ext 2>/dev/null | head -20
 else
-    echo -e "\${YELLOW}⚠ Adding camera configuration...\${NC}"
-    echo "start_x=1" | sudo tee -a /boot/firmware/config.txt
-    echo -e "\${GREEN}✓ Camera enabled\${NC}"
+    echo -e "\${YELLOW}⚠  No camera detected yet\${NC}"
+    echo "Make sure USB camera is plugged in!"
 fi
 
 echo ""
-echo -e "\${YELLOW}⚠ REBOOT REQUIRED for camera to work!\${NC}"
+echo -e "\${GREEN}✓ Camera system ready!\${NC}"
 echo ""
 
 save_checkpoint "$STEP_NAME"
 wait_for_confirmation
 
 else
-    echo -e "${CYAN}⏭  Skipping: Step 14a (already complete)${NC}"
+    echo -e "${CYAN}⭐ Skipping: Step 14a (already complete)${NC}"
     sleep 1
 fi
 
 #==============================================================================
-# Step 14b: Create Camera Test Script
+# Step 14b: Create Camera Test Script (USB Camera)
 #==============================================================================
 
 STEP_NAME="step14b_create_camera_test"
@@ -799,83 +791,129 @@ if ! is_checkpoint_complete "$STEP_NAME" || [ "$RESUME_MODE" = false ]; then
 
 show_step "Step 14b/50: Create Camera Test Script"
 
-show_explanation "Creating test script to verify camera works.
+show_explanation "Creating test script to verify USB camera works.
 
 This script will:
-  • Open /dev/video0
-  • Capture a test image
-  • Save as test_image.jpg
+  • Open /dev/video0 with V4L2 backend
+  • Set MJPEG format for reliable capture
+  • Flush camera buffers
+  • Capture 10 test frames
+  • Save a test image
 
-You'll run this after rebooting!"
+This ensures your camera works before ROS integration!"
 
 wait_for_user
 
 cat > ~/test_camera_v4l2.py << 'CAMERA_TEST_EOF'
 #!/usr/bin/env python3
-# test_camera_v4l2.py
+"""
+USB Camera Test - V4L2 + MJPEG
+Tests camera with proper initialization sequence
+"""
 
 import cv2
 import time
 
-print("Testing V4L2 Camera...")
-print("-" * 40)
+print("="*60)
+print("USB CAMERA TEST - V4L2 + MJPEG")
+print("="*60)
 
-# Open camera
-print("Opening /dev/video0...")
-cap = cv2.VideoCapture('/dev/video0', cv2.CAP_V4L2)
+# Open camera with V4L2 backend
+print("\nOpening /dev/video0...")
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
 
 if not cap.isOpened():
     print("❌ ERROR: Could not open camera!")
     print("\nTroubleshooting:")
     print("  1. Check if /dev/video0 exists: ls -l /dev/video*")
-    print("  2. Check camera detection: vcgencmd get_camera")
-    print("  3. Check config.txt has: start_x=1")
-    print("  4. Did you reboot after Step 14a?")
+    print("  2. Check USB connection")
+    print("  3. Check user is in video group: groups $USER")
+    print("  4. Try different USB port")
     exit(1)
 
-print("✓ Camera opened successfully!")
+print("✅ Camera opened successfully!")
 
-# Set resolution
+# CRITICAL: Set MJPEG format BEFORE resolution
+print("\nSetting MJPEG format...")
+cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+cap.set(cv2.CAP_PROP_FPS, 30)
 
-print(f"Resolution: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
+actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+actual_fps = cap.get(cv2.CAP_PROP_FPS)
 
-# Warm up camera
-print("\nWarming up camera (2 seconds)...")
-time.sleep(2)
+print(f"Resolution: {actual_w}x{actual_h}")
+print(f"FPS: {actual_fps}")
 
-# Capture frame
-print("Capturing image...")
-ret, frame = cap.read()
+# CRITICAL: Flush camera buffers
+print("\nFlushing camera buffers (first 5 frames)...")
+for i in range(5):
+    ret, frame = cap.read()
+    if ret:
+        print(f"  Buffer frame {i+1}/5: ✓")
+    time.sleep(0.1)
 
-if ret:
-    filename = f"test_image_{int(time.time())}.jpg"
-    cv2.imwrite(filename, frame)
-    print(f"✓ Image saved as: {filename}")
-    print(f"  Size: {frame.shape[1]}x{frame.shape[0]}")
-else:
-    print("❌ ERROR: Could not capture frame!")
+# Capture test frames
+print("\nCapturing test frames...")
+success_count = 0
+
+for i in range(10):
+    ret, frame = cap.read()
+    
+    if ret and frame is not None and frame.size > 0:
+        print(f"  Frame {i+1}/10: ✓ ({frame.shape[1]}x{frame.shape[0]})")
+        success_count += 1
+        
+        # Save first frame
+        if i == 0:
+            filename = f"test_camera_{int(time.time())}.jpg"
+            cv2.imwrite(filename, frame)
+            print(f"  📸 Saved: {filename}")
+    else:
+        print(f"  Frame {i+1}/10: ✗ Failed")
+    
+    time.sleep(0.05)
 
 # Release camera
 cap.release()
-print("\n✓ Camera test complete!")
+
+# Summary
+print("\n" + "="*60)
+print(f"Success rate: {success_count}/10")
+
+if success_count >= 8:
+    print("✅ CAMERA WORKING PERFECTLY!")
+    print("\nYour camera is ready for ROS integration!")
+elif success_count >= 3:
+    print("⚠️  CAMERA WORKING BUT UNSTABLE")
+    print("\nCamera works but may have issues.")
+    print("Try a different USB port or camera.")
+else:
+    print("❌ CAMERA NOT WORKING")
+    print("\nCamera cannot capture frames reliably.")
+    print("Check camera connection and try again.")
+
+print("="*60)
 CAMERA_TEST_EOF
 
 chmod +x ~/test_camera_v4l2.py
 
 echo ""
-echo -e "\${GREEN}✓ Camera test script created: ~/test_camera_v4l2.py\${NC}"
+echo -e "${GREEN}✓ Camera test script created: ~/test_camera_v4l2.py${NC}"
+echo ""
+echo "Test your camera now:"
+echo "  python3 ~/test_camera_v4l2.py"
 echo ""
 
 save_checkpoint "$STEP_NAME"
 wait_for_confirmation
 
 else
-    echo -e "${CYAN}⏭  Skipping: Step 14b (already complete)${NC}"
+    echo -e "${CYAN}⭐ Skipping: Step 14b (already complete)${NC}"
     sleep 1
 fi
-
 #==============================================================================
 # Reboot Notice
 #==============================================================================
