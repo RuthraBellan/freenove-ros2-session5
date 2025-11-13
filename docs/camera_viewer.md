@@ -102,7 +102,7 @@ def index():
     status = "✓ Live" if viewer and viewer.frame_count > 0 else "⚠️ Waiting"
     return render_template_string(HTML, status=status)
 
-@app.route('/video_feed')
+@app.route('/feed')
 def feed():
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
