@@ -150,7 +150,7 @@ class MotorControlNode(Node):
             # For 4WD: duty1,duty2 are left side, duty3,duty4 are right side
             # Positive = forward, negative = backward
             
-            self.motor.set_motor_model(left_speed, left_speed, right_speed, right_speed)
+            self.motor.set_motor_model(-left_speed, -left_speed, -right_speed, -right_speed)
             
         except Exception as e:
             self.get_logger().error(f'Failed to set motor speeds: {e}')
